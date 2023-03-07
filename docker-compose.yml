@@ -2,23 +2,29 @@ version: '3.5'
 
 services:
     app_php:
-        image: docker.io/chmelik/k8s-workshop-app-php:0.1
+        image: docker.io/chmelik/k8s-workshop-app-php:0.10
         #build:
         #    target: app_php
         restart: unless-stopped
+        healthcheck:
+            interval: 10s
+            timeout: 3s
+            retries: 3
+            start_period: 30s
         depends_on:
             - app_database
+            - app_redis
+        environment:
+            DATABASE_URL: postgresql://${DOCKER_DATABASE_USER}:${DOCKER_DATABASE_PASSWORD}@${DOCKER_DATABASE_HOST}:${DOCKER_DATABASE_PORT}/${DOCKER_DATABASE_NAME}?serverVersion=14&charset=utf8
 
     app_webserver:
-        image: docker.io/chmelik/k8s-workshop-app-webserver:0.1
+        image: docker.io/chmelik/k8s-workshop-app-webserver:0.5
         #build:
         #    target: nginx
-        volumes:
-            - ./docker/ssl:/etc/nginx/ssl:ro
         depends_on:
             - app_php
-        ports:
-            - '443:443'
+        environment:
+            APP_PHP_HOST: app_php
 
     app_database:
         image: postgres:${POSTGRES_VERSION:-14.5}-alpine
@@ -26,9 +32,40 @@ services:
         volumes:
             - app_database:/var/lib/postgresql/data:rw
         environment:
-            POSTGRES_DB: ${POSTGRES_DB:-db_name}
-            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-db_password}
-            POSTGRES_USER: ${POSTGRES_USER:-db_user}
+            POSTGRES_USER: ${DOCKER_DATABASE_USER}
+            POSTGRES_PASSWORD: ${DOCKER_DATABASE_PASSWORD}
+            POSTGRES_DB: ${DOCKER_DATABASE_NAME}
+
+    app_redis:
+        image: redis:6-alpine
+        restart: unless-stopped
+
+    app_some_worker:
+        image: docker.io/chmelik/k8s-workshop-app-php:0.10
+        #build:
+        #    target: app_php
+        restart: unless-stopped
+        healthcheck:
+            interval: 10s
+            timeout: 3s
+            retries: 3
+            start_period: 30s
+        depends_on:
+            - app_database
+        environment:
+            DATABASE_URL: postgresql://${DOCKER_DATABASE_USER}:${DOCKER_DATABASE_PASSWORD}@${DOCKER_DATABASE_HOST}:${DOCKER_DATABASE_PORT}/${DOCKER_DATABASE_NAME}?serverVersion=14&charset=utf8
+        command: ['bin/console', 'app:some-worker', '-t', '90']
+
+
+    api_gateway:
+        build:
+            target: api_gateway
+        volumes:
+            - ./docker/ssl:/etc/ssl:ro
+        depends_on:
+            - app_webserver
+        ports:
+            - '443:443'
 
 volumes:
     app_database:

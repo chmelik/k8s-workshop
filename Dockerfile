@@ -96,8 +96,10 @@ CMD ["php-fpm"]
 
 
 FROM nginx:${NGINX_VERSION}-alpine as nginx
-
 WORKDIR /app
-
 COPY --from=app_php /app/public public/
-COPY docker/nginx/ /etc/nginx/
+COPY docker/nginx/templates /etc/nginx/templates
+
+
+FROM nginx:${NGINX_VERSION}-alpine as api_gateway
+COPY docker/gateway/ /etc/nginx/

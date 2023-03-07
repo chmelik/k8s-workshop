@@ -10,11 +10,12 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'qwerty')]
 class Qwerty
 {
-    public function __construct(
-        #[ORM\Id]
-        #[ORM\Column(type: 'integer')]
-        private readonly int $id,
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column(type: 'integer')]
+    private readonly int $id;
 
+    public function __construct(
         #[ORM\Column(length: 255)]
         private string $name
     ) {

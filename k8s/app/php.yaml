@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-php
+  namespace: k8s-workshop
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate # it's by default. Alternative value - Recreate
+    rollingUpdate:
+      maxUnavailable: 25% # or absolute value
+      maxSurge: 100%
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      containers:
+        - name: app
+          image: docker.io/chmelik/k8s-workshop-app-php:0.10
+          env:
+            - name: APP_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  key: APP_SECRET
+                  name: app-env
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  key: DB_USER
+                  name: app-secret
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DB_PASSWORD
+                  name: app-secret
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_NAME
+                  name: app-env
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: app-env
+            - name: DATABASE_HOST
+              value: app-database
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?serverVersion=14&charset=utf8"
+            - name: REDIS_PROVIDER_URL
+              value: "redis://app-redis-srv:6379"
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - mountPath: /app/private
+              name: default-storage
+        # Pay attention!
+        #- name: redis
+        #  image: redis:6-alpine
+        #  ports:
+        #    - containerPort: 6379
+      initContainers:
+        - name: init-db
+          image: busybox
+          env:
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: app-env
+          command: ['sh', '-c', 'until nc -z app-database:$(DATABASE_PORT); do echo waiting for database; sleep 2; done;']
+      restartPolicy: Always
+      volumes:
+        - name: default-storage
+          persistentVolumeClaim:
+            claimName: app-pv-claim-php
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-php-srv
+  namespace: k8s-workshop
+spec:
+  #type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    app: php

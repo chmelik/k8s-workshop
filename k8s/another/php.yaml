@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: another-php
+  namespace: k8s-workshop
+spec:
+  replicas: 3
+  serviceName: another-php-headless-srv
+  selector:
+    matchLabels:
+      another: php
+  template:
+    metadata:
+      labels:
+        another: php
+    spec:
+      terminationGracePeriodSeconds: 20
+      containers:
+        - name: app
+          image: chmelik/k8s-workshop-app-php:0.10
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  key: DB_USER
+                  name: app-secret
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DB_PASSWORD
+                  name: app-secret
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_NAME
+                  name: app-env
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: app-env
+            - name: DATABASE_HOST
+              value: app-database
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?serverVersion=14&charset=utf8"
+          ports:
+            - containerPort: 9000
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          volumeMounts:
+            - mountPath: /app/private
+              name: default-storage
+            - mountPath: /app/another-private
+              name: another-private-storage
+      initContainers:
+        - name: init-db
+          image: busybox
+          env:
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: app-env
+          command: ['sh', '-c', 'until nc -z app-database:$(DATABASE_PORT); do echo waiting for database; sleep 2; done;']
+      restartPolicy: Always
+      volumes:
+        - name: default-storage
+          persistentVolumeClaim:
+            claimName: another-pv-claim-php
+  volumeClaimTemplates:
+    - metadata:
+        name: another-private-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: another-php-readonly-srv
+  namespace: k8s-workshop
+  labels:
+    another: php
+    #readonly: "true"
+spec:
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    another: php
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: another-php-headless-srv
+  namespace: k8s-workshop
+  labels:
+    another: php
+spec:
+  clusterIP: None
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    another: php

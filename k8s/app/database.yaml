@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-database
+  namespace: k8s-workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.5-alpine
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  key: DB_USER
+                  name: app-secret
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DB_PASSWORD
+                  name: app-secret
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_NAME
+                  name: app-env
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-pv-storage
+      restartPolicy: Always
+      volumes:
+        - name: postgres-pv-storage
+          persistentVolumeClaim:
+            claimName: app-pv-claim-database
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-database
+  namespace: k8s-workshop
+spec:
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: database

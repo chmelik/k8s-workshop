@@ -12,6 +12,7 @@
         "doctrine/annotations": "^2.0",
         "doctrine/doctrine-bundle": "^2.5",
         "doctrine/orm": "^2.14",
+        "predis/predis": "^2.1",
         "symfony/console": "6.2.*",
         "symfony/dotenv": "6.2.*",
         "symfony/flex": "^2",

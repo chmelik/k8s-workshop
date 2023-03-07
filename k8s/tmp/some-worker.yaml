@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: some-worker
+  namespace: k8s-workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: some-worker
+  template:
+    metadata:
+      labels:
+        app: some-worker
+    spec:
+      containers:
+        - name: app
+          image: docker.io/chmelik/k8s-workshop-app-php:0.10
+          command: ['bin/console', 'app:some-worker', '-t', '10']
+          env:
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  key: DB_USER
+                  name: app-secret
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: DB_PASSWORD
+                  name: app-secret
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_NAME
+                  name: app-env
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: DB_PORT
+                  name: app-env
+            - name: DATABASE_HOST
+              value: app-database
+            - name: DATABASE_URL
+              value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?serverVersion=14&charset=utf8"
+            - name: REDIS_PROVIDER_URL
+              value: "redis://127.0.0.1:6379"
+      restartPolicy: Always

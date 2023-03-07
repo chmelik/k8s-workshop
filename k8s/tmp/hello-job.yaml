@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-job
+  namespace: k8s-workshop
+spec:
+  parallelism: 2
+  completions: 10
+  template:
+    spec:
+      containers:
+        - name: some-worker
+          image: docker.io/chmelik/k8s-workshop-app-php:0.10
+          command: ['sh']
+          args:
+            - -c
+            - echo "Hello, is it me you looking for? =)"
+      restartPolicy: OnFailure
+  backoffLimit: 4
+  #podFailurePolicy:
+  #  rules:
+  #    - action: FailJob
+  #      onExitCodes:
+  #        containerName: main
+  #        operator: In
+  #        values: [1, 2]
+  #    - action: Ignore
+  #      onPodConditions:
+  #        - type: DisruptionTarget

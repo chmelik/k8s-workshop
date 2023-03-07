@@ -1,0 +1,25 @@
+#!/bin/bash
+
+SCRIPT_PATH=$(
+  cd $(dirname $0)
+  pwd -P
+)
+PROJECT_PATH=$(dirname ${SCRIPT_PATH})
+cd ${PROJECT_PATH}
+
+case $1 in
+build_app_php)
+  VERSION=${2}
+
+  docker build --target app_php -t k8s-workshop-app-php . && \
+  docker tag k8s-workshop-app-php chmelik/k8s-workshop-app-php:${VERSION} && \
+  docker push chmelik/k8s-workshop-app-php:${VERSION}
+  ;;
+build_app_webserver)
+  VERSION=${2}
+
+  docker build --target nginx -t k8s-workshop-app-webserver . && \
+  docker tag k8s-workshop-app-webserver chmelik/k8s-workshop-app-webserver:${VERSION} && \
+  docker push chmelik/k8s-workshop-app-webserver:${VERSION}
+  ;;
+esac

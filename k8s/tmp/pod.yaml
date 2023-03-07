@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-php-pod1
+  namespace: k8s-workshop
+  labels:
+    app: php
+spec:
+  containers:
+    - name: app
+      image: docker.io/chmelik/k8s-workshop-app-php:0.10
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-php-pod2
+  namespace: k8s-workshop
+  labels:
+    app: php
+spec:
+  containers:
+    - name: app
+      image: docker.io/chmelik/k8s-workshop-app-php:0.10

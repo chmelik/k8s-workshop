@@ -13,7 +13,7 @@ class QwertyFixtures extends Fixture
     public function load(ObjectManager $manager): void
     {
         foreach (range(1, 10) as $i) {
-            $qwerty = new Qwerty($i, sprintf('Name %d', $i));
+            $qwerty = new Qwerty(sprintf('Name %d', $i));
             $manager->persist($qwerty);
         }
 

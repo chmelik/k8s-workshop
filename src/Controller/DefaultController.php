@@ -12,10 +12,11 @@ use Symfony\Component\Routing\Annotation\Route;
 #[Route('/', methods: ['GET'])]
 class DefaultController
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, string $appSecret): Response
     {
         return new JsonResponse([
             'message' => sprintf('qwerty: %s', $request->query->get('qwerty')),
+            'secret' => $appSecret,
         ]);
     }
 }
